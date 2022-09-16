@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+      crossorigin="anonymous"
+    />
+    <title>Document</title>
+    <style>
+         .task label.checked {
+            text-decoration: line-through;
+        }
+        div .gorev li{
+          list-style-type: none;
+          display: block;
+          float: left;
+          margin-right: 15px; 
+          cursor: pointer;
+        }
+        div .gorev li.activate{
+          color: blue;
+        }
+    </style>
+  </head>
+  <body>
+
+    <!--KULLANICI ARAYÜZÜ-->
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">Todo App</div>
+          </div>
+          <div class="form-group btn-sm">
+            <input type="text" id="taskAddname">
+            <button type="submit" class="btn btn-primary" id="Add">EKLE</button>
+          </div>
+          <div class="card mt-3">
+            <div class="card-header">
+              <div class="d-flex justify-content-between ">
+                <div class="col-example gorev">
+                <ul class="filters">
+                  <li class="activate" id="all">Hepsi</li>
+                  <li id="pending">Bekleyenler</li>
+                  <li id="completed">Tamamladıklarım</li>
+                </ul>  
+                </div>
+                <div class="col-example "></div>
+                <div class="col-example ">   <button type="submit" class="btn btn-danger justify-content-end" onclick="alldelete()" id="taskRemoveName">TEMİZLE</button></div>
+              </div>
+           
+            </div>
+            <ul id="task-list" class="list-group list-group-flush"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+     
+     
+     var gorev_listesi = []
+    
+      if(localStorage.getItem("gorev_listesi")!=null){
+        gorev_listesi=JSON.parse(localStorage.getItem("gorev_listesi"))
+      }
+
+
+   const taskwrite=document.getElementById("taskAddname")
+    var ul = document.getElementById("task-list");
+    
+    let Editid;
+    let isEditTask=false;
+    let filters=document.querySelectorAll(".filters li")
+
+    gorevyaz("all");
+     //FİLTRELEME
+    for(let li of filters){
+      li.addEventListener("click", function(){
+        document.querySelector("li.activate").classList.remove("activate")
+        li.classList.add("activate")
+        gorevyaz(li.id)
+      } )
+    }
+
+   //GÖREV EKRANA YAZDIRMA
+    function gorevyaz(filters){ 
+        ul.innerText=""
+        if(gorev_listesi.length==0){
+       ul.innerHTML="<p class='p-3'>Görev listeniz boş</p>" 
+      }
+      else{
+        
+      for(let gorev of gorev_listesi){
+
+        let completed=gorev.durum=="completed" ? "checked":""
+        if(filters==gorev.durum || filters=="all"){
+        let li = `
+                <li class="task list-group-item">
+                    <div class="form-check">
+                        <input type="checkbox" onclick="updateStatus(this)" id="${gorev.id}" class="form-check-input"  ${completed} >
+                        <label for="${gorev.id}" class="form-check-label ${completed} ">${gorev.görev}</label>
+                        <button type="submit" onclick="deleteTask(${gorev.id})" class="btn btn-danger ml-auto"> sil</button>
+                        <button type="submit" onclick='updateTask(${gorev.id},"${gorev.görev}")' class="btn btn-warning"> düzenle</button>
+                    </div>
+                   
+                </li>
+            `;
+            ul.insertAdjacentHTML("beforeend",li)
+          }
+      }
+    }
+  }
+    
+  //GÖREV EKLEME
+    document.getElementById("Add").addEventListener("click", function(){
+     
+    
+      if(taskwrite.value==""){
+          alert("görev giriniz")
+
+        }
+    
+    
+        else{
+          if(!isEditTask){
+          gorev_listesi.push( { "id": gorev_listesi.length+1, "görev": taskwrite.value,"durum":"pending" })
+          }
+          else{
+            for(let gorev in gorev_listesi){
+                if(gorev.id==Editid){
+                  gorev.görev=taskwrite.value;
+                }
+                isEditTask=false
+            }
+          }
+          taskwrite.value=""
+          localStorage.setItem("gorev_listesi",JSON.stringify(gorev_listesi))
+          gorevyaz("all")
+         
+
+        }
+      })
+      //GÖREV SİLME
+      function deleteTask(id){
+      
+        for(let görev in gorev_listesi){
+          if(gorev_listesi[görev].id==id){
+            deletedId=id
+          }
+       
+        }
+        gorev_listesi.splice(deletedId-1,1)
+        localStorage.setItem("gorev_listesi",JSON.stringify(gorev_listesi))
+          gorevyaz("all")
+      }
+      //GÖREV GÜNCELLEME
+      function updateTask(id,name){
+        Editid=id
+        isEditTask=true
+        taskwrite.value=name
+        taskwrite.focus()
+        document.getElementById("taskAddname").classList.add("active")
+
+
+        
+      }
+      
+      //GÖREV TÜMÜNÜ SİLME
+     function alldelete(){
+      
+      gorev_listesi.splice(0,gorev_listesi.length)
+      localStorage.setItem("gorev_listesi",JSON.stringify(gorev_listesi))
+      gorevyaz("all")
+     }
+     function updateStatus(selectedTask){
+      let label =selectedTask.nextElementSibling
+      let durum
+      if(selectedTask.checked){
+        label.classList.add("checked")
+        durum="completed"
+      }
+      else{
+        label.classList.remove("checked")
+        durum="pending"
+      }
+      for(let gorev of gorev_listesi){
+        if(gorev.id==selectedTask.id){
+          gorev.durum=durum
+        }
+      }
+      gorevyaz(querySelectorAll("li.activate").id)
+
+      localStorage.setItem("gorev_listesi",JSON.stringify(gorev_listesi))
+     }
+   
+    </script>
+  </body>
+</html>
